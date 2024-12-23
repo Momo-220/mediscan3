@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0066ff">
+    <meta name="description" content="MediScan - Identificateur de Médicaments par IA">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <title>MediScan - Application</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192x192.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <button class="back-button" onclick="window.location.href='index.html'">
+            <i class="fas fa-arrow-left"></i>
+            <span>Retour</span>
+        </button>
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-brain fa-4x"></i>
+                <i class="fas fa-microscope fa-3x"></i>
+            </div>
+            <h1>MediScan</h1>
+        </div>
+        
+        <h2>Identificateur de Médicaments</h2>
+        
+        <div class="cards-container">
+            <div class="card" id="uploadBtn">
+                <div class="card-icon">
+                    <i class="fas fa-arrow-up-from-bracket"></i>
+                </div>
+                <span>Télécharger</span>
+                <small>Importez une photo</small>
+            </div>
+            
+            <div class="card" id="captureBtn">
+                <div class="card-icon">
+                    <i class="fas fa-camera-alt"></i>
+                </div>
+                <span>Photo</span>
+                <small>Prenez en photo</small>
+            </div>
+        </div>
+
+        <input type="file" id="fileInput" accept="image/*" hidden>
+        <video id="camera" hidden></video>
+        
+        <div id="imagePreview" class="preview-container" hidden>
+            <img id="preview" src="" alt="Aperçu">
+        </div>
+
+        <div id="scanStatus" class="scan-status" hidden>
+            <div class="status-text">
+                <span id="statusMessage">Scan en cours</span>
+            </div>
+        </div>
+
+        <div id="resultTable" class="result-container" hidden>
+            <div class="table-section">
+                <div class="info-section">
+                    <h3>Informations Générales</h3>
+                    <table>
+                        <tbody id="generalInfo">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="table-section">
+                <div class="info-section">
+                    <h3>Informations Médicales</h3>
+                    <table>
+                        <tbody id="medicalInfo">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="how-it-works">
+            <h3>Comment ça marche</h3>
+            <div class="steps-container">
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <h4>Télécharger l'image</h4>
+                    <p>Prenez une photo ou téléchargez une image existante du médicament que vous souhaitez identifier.</p>
+                    <small>Format accepté: JPG, PNG</small>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-magnifying-glass"></i>
+                    </div>
+                    <h4>Analyse IA</h4>
+                    <p>Notre IA avancée analyse l'image pour identifier le médicament et ses caractéristiques.</p>
+                    <small>Analyse instantanée et précise</small>
+                </div>
+                
+                <div class="step-card">
+                    <div class="step-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <h4>Obtenir les informations</h4>
+                    <p>Recevez des informations détaillées sur le médicament, incluant son nom, sa composition et son utilisation.</p>
+                    <small>Informations complètes et fiables</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

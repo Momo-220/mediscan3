@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#0066ff"/>
+            <stop offset="100%" style="stop-color:#3399ff"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- Fond circulaire -->
+    <circle cx="256" cy="256" r="240" fill="white"/>
+    <circle cx="256" cy="256" r="230" fill="url(#logoGradient)"/>
+    
+    <!-- Croix médicale stylisée -->
+    <path d="M256 128v256M128 256h256" stroke="white" stroke-width="40" stroke-linecap="round"/>
+    
+    <!-- Cercle d'analyse -->
+    <circle cx="256" cy="256" r="180" stroke="white" stroke-width="8" fill="none" stroke-dasharray="16 16"/>
+    
+    <!-- Points d'analyse -->
+    <circle cx="256" cy="100" r="12" fill="white"/>
+    <circle cx="412" cy="256" r="12" fill="white"/>
+    <circle cx="256" cy="412" r="12" fill="white"/>
+    <circle cx="100" cy="256" r="12" fill="white"/>
+</svg> 
