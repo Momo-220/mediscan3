@@ -11,22 +11,25 @@
     <meta name="mobile-web-app-capable" content="yes">
     
     <title>MediScan - Application</title>
-    <link rel="manifest" href="/public/manifest.json">
-    <link rel="apple-touch-icon" href="/public/icons/icon-192x192.png">
-    <link rel="icon" type="image/png" href="/public/icons/favicon.png">
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" href="icons/favicon.png">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Scripts React nécessaires -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <button class="back-button" onclick="window.location.href='index.html'">
+        <button class="back-button" onclick="window.location.href='/'">
             <i class="fas fa-arrow-left"></i>
             <span>Retour</span>
         </button>
         <div class="header">
             <div class="logo">
-                <i class="fas fa-brain fa-4x"></i>
-                <i class="fas fa-microscope fa-3x"></i>
+                <img src="icons/logo.png" alt="MediScan Logo" class="logo-img">
             </div>
             <h1>MediScan</h1>
         </div>
@@ -34,7 +37,7 @@
         <h2>Identificateur de Médicaments</h2>
         
         <div class="cards-container">
-            <div class="card" id="uploadBtn">
+            <div class="card" id="uploadBtn" role="button" tabindex="0">
                 <div class="card-icon">
                     <i class="fas fa-arrow-up-from-bracket"></i>
                 </div>
@@ -42,7 +45,7 @@
                 <small>Importez une photo</small>
             </div>
             
-            <div class="card" id="captureBtn">
+            <div class="card" id="captureBtn" role="button" tabindex="0">
                 <div class="card-icon">
                     <i class="fas fa-camera-alt"></i>
                 </div>
@@ -52,7 +55,7 @@
         </div>
 
         <input type="file" id="fileInput" accept="image/*" hidden>
-        <video id="camera" hidden></video>
+        <video id="camera" hidden playsinline></video>
         
         <div id="imagePreview" class="preview-container" hidden>
             <img id="preview" src="" alt="Aperçu">
@@ -118,6 +121,8 @@
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+    
+    <!-- Chargement du script principal -->
+    <script src="script.js" type="module"></script>
 </body>
 </html> 
