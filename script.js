@@ -1,57 +1,89 @@
 const API_KEY = 'AIzaSyD00fZSXDsQBx60juOZxBdgT--jQKVvpl0';
 
-// Configuration de sécurité
-const securityConfig = {
-    headers: {
-        'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'",
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'strict-origin-when-cross-origin'
-    }
-};
-
-import { Camera } from 'expo-camera';
-import * as ImageManipulator from 'expo-image-manipulator';
-
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('uploadBtn');
     const captureBtn = document.getElementById('captureBtn');
     const fileInput = document.getElementById('fileInput');
+    const camera = document.getElementById('camera');
     const preview = document.getElementById('preview');
     const imagePreview = document.getElementById('imagePreview');
     const resultTable = document.getElementById('resultTable');
 
-    // Demander la permission d'utiliser la caméra au démarrage
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-        alert('Permission d\'accès à la caméra refusée');
-        return;
-    }
-
+    // Fonction pour le bouton de téléchargement
     uploadBtn.addEventListener('click', () => {
         fileInput.click();
     });
 
-    fileInput.addEventListener('change', handleImageUpload);
-    captureBtn.addEventListener('click', startCamera);
+    // Fonction pour le bouton de capture photo
+    captureBtn.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
+            
+            camera.srcObject = stream;
+            camera.hidden = false;
+            camera.play();
 
-    // Fonction de sanitisation des données
-    function sanitizeData(data) {
-        const clean = {};
-        for (let key in data) {
-            clean[key] = typeof data[key] === 'string' 
-                ? data[key].replace(/[<>]/g, '') 
-                : data[key];
+            // Créer le bouton de capture
+            const captureContainer = document.createElement('div');
+            captureContainer.style.position = 'fixed';
+            captureContainer.style.bottom = '20px';
+            captureContainer.style.left = '0';
+            captureContainer.style.right = '0';
+            captureContainer.style.display = 'flex';
+            captureContainer.style.justifyContent = 'center';
+            captureContainer.style.zIndex = '1000';
+            
+            const takePictureBtn = document.createElement('button');
+            takePictureBtn.className = 'capture-button';
+            takePictureBtn.innerHTML = '<i class="fas fa-camera"></i>';
+            takePictureBtn.style.width = '70px';
+            takePictureBtn.style.height = '70px';
+            takePictureBtn.style.borderRadius = '35px';
+            takePictureBtn.style.backgroundColor = '#0066ff';
+            takePictureBtn.style.border = 'none';
+            takePictureBtn.style.color = 'white';
+            takePictureBtn.style.fontSize = '24px';
+            
+            captureContainer.appendChild(takePictureBtn);
+            document.body.appendChild(captureContainer);
+
+            // Fonction pour prendre la photo
+            takePictureBtn.onclick = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = camera.videoWidth;
+                canvas.height = camera.videoHeight;
+                canvas.getContext('2d').drawImage(camera, 0, 0);
+                
+                canvas.toBlob(async (blob) => {
+                    camera.hidden = true;
+                    preview.src = URL.createObjectURL(blob);
+                    imagePreview.hidden = false;
+                    
+                    // Nettoyer
+                    stream.getTracks().forEach(track => track.stop());
+                    captureContainer.remove();
+                    
+                    await analyzeMedication(blob);
+                }, 'image/jpeg', 0.95);
+            };
+
+        } catch (err) {
+            console.error('Erreur lors de l\'accès à la caméra:', err);
+            alert('Impossible d\'accéder à la caméra. Veuillez vérifier les permissions.');
         }
-        return clean;
-    }
+    });
 
-    async function handleImageUpload(e) {
+    // Gestion du téléchargement d'image
+    fileInput.addEventListener('change', async (e) => {
         try {
             const file = e.target.files[0];
             if (file) {
-                // Vérifier la taille du fichier (10MB max)
                 if (file.size > 10 * 1024 * 1024) {
                     throw new Error('L\'image ne doit pas dépasser 10MB');
                 }
@@ -64,122 +96,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Erreur:', error);
             alert(error.message);
         }
-    }
+    });
 
-    async function startCamera() {
-        try {
-            // Créer un élément Camera de React Native
-            const cameraRef = React.createRef();
-            const cameraContainer = document.createElement('div');
-            cameraContainer.style.position = 'fixed';
-            cameraContainer.style.top = '0';
-            cameraContainer.style.left = '0';
-            cameraContainer.style.width = '100%';
-            cameraContainer.style.height = '100%';
-            cameraContainer.style.zIndex = '1000';
-            document.body.appendChild(cameraContainer);
-
-            // Configurer la caméra
-            const CameraComponent = () => {
-                const [type, setType] = React.useState(Camera.Constants.Type.back);
-                
-                const takePicture = async () => {
-                    if (cameraRef.current) {
-                        const photo = await cameraRef.current.takePictureAsync({
-                            quality: 0.7,
-                            base64: true,
-                        });
-
-                        // Redimensionner l'image si nécessaire
-                        const manipResult = await ImageManipulator.manipulateAsync(
-                            photo.uri,
-                            [{ resize: { width: 1024 } }],
-                            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-                        );
-
-                        // Convertir en Blob pour la compatibilité avec le code existant
-                        const response = await fetch(manipResult.uri);
-                        const blob = await response.blob();
-
-                        // Afficher l'aperçu
-                        preview.src = URL.createObjectURL(blob);
-                        imagePreview.hidden = false;
-
-                        // Nettoyer
-                        document.body.removeChild(cameraContainer);
-
-                        // Analyser l'image
-                        await analyzeMedication(blob);
-                    }
-                };
-
-                return (
-                    <Camera 
-                        ref={cameraRef}
-                        type={type}
-                        style={{
-                            flex: 1,
-                            width: '100%',
-                            height: '100%'
-                        }}
-                    >
-                        <View style={{
-                            position: 'absolute',
-                            bottom: 20,
-                            flexDirection: 'row',
-                            justifyContent: 'space-around',
-                            width: '100%'
-                        }}>
-                            <TouchableOpacity
-                                onPress={takePicture}
-                                style={{
-                                    width: 70,
-                                    height: 70,
-                                    borderRadius: 35,
-                                    backgroundColor: '#fff',
-                                    justifyContent: 'center',
-                                    alignItems: 'center'
-                                }}
-                            >
-                                <View style={{
-                                    width: 60,
-                                    height: 60,
-                                    borderRadius: 30,
-                                    backgroundColor: '#0066ff'
-                                }} />
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setType(
-                                        type === Camera.Constants.Type.back
-                                            ? Camera.Constants.Type.front
-                                            : Camera.Constants.Type.back
-                                    );
-                                }}
-                                style={{
-                                    position: 'absolute',
-                                    right: 20,
-                                    bottom: 20
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, color: 'white' }}>🔄</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Camera>
-                );
-            };
-
-            // Rendre le composant Camera
-            ReactDOM.render(<CameraComponent />, cameraContainer);
-
-        } catch (err) {
-            console.error('Erreur lors de l\'accès à la caméra:', err);
-            alert('Impossible d\'accéder à la caméra');
-        }
-    }
-
-    // Modification de la fonction analyzeMedication
+    // Fonction d'analyse du médicament
     async function analyzeMedication(imageFile) {
         try {
             const scanStatus = document.getElementById('scanStatus');
@@ -250,135 +169,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const textResponse = data.candidates[0].content.parts[0].text;
             
-            // Traitement des données
-            const processedData = {
-                name: extractInfoFromNumberedList(textResponse, 1) || "Information non disponible",
-                laboratory: extractInfoFromNumberedList(textResponse, 2) || "Information non disponible",
-                molecule: extractInfoFromNumberedList(textResponse, 3) || "Information non disponible",
-                form: extractInfoFromNumberedList(textResponse, 4) || "Information non disponible",
-                dosage: extractInfoFromNumberedList(textResponse, 5) || "Information non disponible",
-                category: extractInfoFromNumberedList(textResponse, 6) || "Information non disponible",
-                mainUse: extractInfoFromNumberedList(textResponse, 7) || "Information non disponible",
-                posology: extractInfoFromNumberedList(textResponse, 8) || "Information non disponible",
-                administration: extractInfoFromNumberedList(textResponse, 9) || "Information non disponible",
-                contraindications: extractInfoFromNumberedList(textResponse, 10) || "Information non disponible",
-                sideEffects: extractInfoFromNumberedList(textResponse, 11) || "Information non disponible",
-                interactions: extractInfoFromNumberedList(textResponse, 12) || "Information non disponible",
-                precautions: extractInfoFromNumberedList(textResponse, 13) || "Information non disponible",
-                storage: extractInfoFromNumberedList(textResponse, 14) || "Information non disponible",
-                riskPopulation: extractInfoFromNumberedList(textResponse, 15) || "Information non disponible",
-                monitoring: extractInfoFromNumberedList(textResponse, 16) || "Information non disponible",
-                status: extractInfoFromNumberedList(textResponse, 17) || "Information non disponible",
-                manufacturer: extractInfoFromNumberedList(textResponse, 18) || "Information non disponible",
-                expiry: extractInfoFromNumberedList(textResponse, 19) || "Information non disponible"
-            };
-
+            // Traitement et affichage des résultats
+            displayResults(textResponse);
+            
             // Mise à jour du statut
             statusMessage.classList.remove('loading-dots');
             statusMessage.textContent = 'Scan terminé';
-            const checkmark = document.createElement('span');
-            checkmark.textContent = '✓';
-            checkmark.className = 'success-checkmark';
-            statusMessage.appendChild(checkmark);
             statusMessage.classList.add('success');
-
-            // Affichage des résultats
-            displayResults(processedData);
             resultTable.hidden = false;
 
         } catch (error) {
-            console.error('Erreur détaillée:', error);
+            console.error('Erreur:', error);
             statusMessage.classList.remove('loading-dots');
             statusMessage.textContent = 'Erreur lors du scan';
             statusMessage.classList.add('error');
-
-            const errorMessage = `
-                <tr>
-                    <td colspan="2" style="text-align: center; color: red;">
-                        <i class="fas fa-exclamation-circle"></i> 
-                        Une erreur est survenue lors de l'analyse. Veuillez réessayer.
-                    </td>
-                </tr>
-            `;
-            
-            generalInfo.innerHTML = errorMessage;
-            medicalInfo.innerHTML = errorMessage;
-            resultTable.hidden = false;
+            alert(error.message);
         }
     }
 
-    // Fonction de gestion des erreurs
-    function handleError(error) {
-        console.error('Erreur détaillée:', error);
-        statusMessage.classList.remove('loading-dots');
-        statusMessage.textContent = 'Une erreur est survenue';
-        statusMessage.classList.add('error');
-    }
-
-    // Ajout d'un gestionnaire d'erreurs global
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-        console.error('Erreur globale:', {msg, url, lineNo, columnNo, error});
-        return false;
-    };
-
-    function displayResults(data) {
-        const generalInfo = document.getElementById('generalInfo');
-        const medicalInfo = document.getElementById('medicalInfo');
-        
-        generalInfo.innerHTML = '';
-        medicalInfo.innerHTML = '';
-        
-        // Informations générales
-        const generalInfos = {
-            'Nom commercial': data.name,
-            'Laboratoire': data.laboratory,
-            'Molécule (DCI)': data.molecule,
-            'Forme pharmaceutique': data.form,
-            'Dosage': data.dosage,
-            'Conservation': data.storage,
-            'Date de péremption': data.expiry,
-            'Fabricant': data.manufacturer,
-            'Statut': data.status
-        };
-
-        // Informations médicales
-        const medicalInfos = {
-            'Classe thérapeutique': data.category,
-            'Indications principales': data.mainUse,
-            'Posologie recommandée': data.posology,
-            'Mode d\'administration': data.administration,
-            'Contre-indications': data.contraindications,
-            'Effets secondaires fréquents': data.sideEffects,
-            'Interactions médicamenteuses': data.interactions,
-            'Précautions particulières': data.precautions,
-            'Population à risque': data.riskPopulation,
-            'Surveillance particulière': data.monitoring
-        };
-
-        // Fonction pour créer les lignes du tableau
-        const createTableRows = (infoObj, tableBody) => {
-            for (const [key, value] of Object.entries(infoObj)) {
-                if (value && value !== "Information non disponible") {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="info-label"><strong>${key}</strong></td>
-                        <td class="info-value">${value}</td>
-                    `;
-                    tableBody.appendChild(row);
-                }
-            }
-        };
-
-        createTableRows(generalInfos, generalInfo);
-        createTableRows(medicalInfos, medicalInfo);
-    }
-
-    function extractInfoFromNumberedList(text, number) {
-        const regex = new RegExp(`${number}[.).\\s]+([^\\n]+)`, 'i');
-        const match = text.match(regex);
-        return match ? match[1].trim() : null;
-    }
-
+    // Fonction pour convertir l'image en base64
     function convertToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -388,28 +197,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Gestion des gestes tactiles
-    let touchStartY = 0;
-    let touchEndY = 0;
-
-    document.addEventListener('touchstart', e => {
-        touchStartY = e.changedTouches[0].screenY;
-    });
-
-    document.addEventListener('touchend', e => {
-        touchEndY = e.changedTouches[0].screenY;
-        handleSwipeGesture();
-    });
-
-    function handleSwipeGesture() {
-        const swipeDistance = touchEndY - touchStartY;
-        if (Math.abs(swipeDistance) > 50) {
-            // Gestion du swipe
-            if (swipeDistance > 0) {
-                // Swipe vers le bas
-            } else {
-                // Swipe vers le haut
+    // Fonction pour afficher les résultats
+    function displayResults(textResponse) {
+        const generalInfo = document.getElementById('generalInfo');
+        const medicalInfo = document.getElementById('medicalInfo');
+        
+        // Extraction des informations
+        const infos = {
+            general: {
+                'Nom commercial': extractInfo(textResponse, 1),
+                'Laboratoire': extractInfo(textResponse, 2),
+                'Molécule': extractInfo(textResponse, 3),
+                'Forme': extractInfo(textResponse, 4),
+                'Dosage': extractInfo(textResponse, 5),
+                'Fabricant': extractInfo(textResponse, 18)
+            },
+            medical: {
+                'Classe thérapeutique': extractInfo(textResponse, 6),
+                'Indications': extractInfo(textResponse, 7),
+                'Posologie': extractInfo(textResponse, 8),
+                'Mode d\'administration': extractInfo(textResponse, 9),
+                'Contre-indications': extractInfo(textResponse, 10),
+                'Effets secondaires': extractInfo(textResponse, 11),
+                'Interactions': extractInfo(textResponse, 12),
+                'Précautions': extractInfo(textResponse, 13)
             }
-        }
+        };
+
+        // Affichage des informations générales
+        generalInfo.innerHTML = Object.entries(infos.general)
+            .map(([key, value]) => `
+                <tr>
+                    <td class="info-label"><strong>${key}</strong></td>
+                    <td class="info-value">${value || 'Non spécifié'}</td>
+                </tr>
+            `).join('');
+
+        // Affichage des informations médicales
+        medicalInfo.innerHTML = Object.entries(infos.medical)
+            .map(([key, value]) => `
+                <tr>
+                    <td class="info-label"><strong>${key}</strong></td>
+                    <td class="info-value">${value || 'Non spécifié'}</td>
+                </tr>
+            `).join('');
+    }
+
+    // Fonction pour extraire les informations du texte
+    function extractInfo(text, number) {
+        const regex = new RegExp(`${number}[.).\\s]+([^\\n]+)`, 'i');
+        const match = text.match(regex);
+        return match ? match[1].trim() : null;
     }
 }); 
