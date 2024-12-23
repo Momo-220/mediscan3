@@ -11,14 +11,23 @@ const securityConfig = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+import { Camera } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
+
+document.addEventListener('DOMContentLoaded', async () => {
     const uploadBtn = document.getElementById('uploadBtn');
     const captureBtn = document.getElementById('captureBtn');
     const fileInput = document.getElementById('fileInput');
-    const camera = document.getElementById('camera');
     const preview = document.getElementById('preview');
     const imagePreview = document.getElementById('imagePreview');
     const resultTable = document.getElementById('resultTable');
+
+    // Demander la permission d'utiliser la caméra au démarrage
+    const { status } = await Camera.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+        alert('Permission d\'accès à la caméra refusée');
+        return;
+    }
 
     uploadBtn.addEventListener('click', () => {
         fileInput.click();
@@ -38,11 +47,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return clean;
     }
 
-    // Modification de la fonction handleImageUpload
     async function handleImageUpload(e) {
         try {
             const file = e.target.files[0];
             if (file) {
+                // Vérifier la taille du fichier (10MB max)
+                if (file.size > 10 * 1024 * 1024) {
+                    throw new Error('L\'image ne doit pas dépasser 10MB');
+                }
                 const imageUrl = URL.createObjectURL(file);
                 preview.src = imageUrl;
                 imagePreview.hidden = false;
@@ -56,73 +68,114 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function startCamera() {
         try {
-            const constraints = {
-                video: {
-                    facingMode: { ideal: 'environment' }, // Utilise la caméra arrière par défaut
-                    width: { ideal: 1920 }, // Résolution HD
-                    height: { ideal: 1080 },
-                    aspectRatio: { ideal: 1.7777777778 }
-                }
+            // Créer un élément Camera de React Native
+            const cameraRef = React.createRef();
+            const cameraContainer = document.createElement('div');
+            cameraContainer.style.position = 'fixed';
+            cameraContainer.style.top = '0';
+            cameraContainer.style.left = '0';
+            cameraContainer.style.width = '100%';
+            cameraContainer.style.height = '100%';
+            cameraContainer.style.zIndex = '1000';
+            document.body.appendChild(cameraContainer);
+
+            // Configurer la caméra
+            const CameraComponent = () => {
+                const [type, setType] = React.useState(Camera.Constants.Type.back);
+                
+                const takePicture = async () => {
+                    if (cameraRef.current) {
+                        const photo = await cameraRef.current.takePictureAsync({
+                            quality: 0.7,
+                            base64: true,
+                        });
+
+                        // Redimensionner l'image si nécessaire
+                        const manipResult = await ImageManipulator.manipulateAsync(
+                            photo.uri,
+                            [{ resize: { width: 1024 } }],
+                            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+                        );
+
+                        // Convertir en Blob pour la compatibilité avec le code existant
+                        const response = await fetch(manipResult.uri);
+                        const blob = await response.blob();
+
+                        // Afficher l'aperçu
+                        preview.src = URL.createObjectURL(blob);
+                        imagePreview.hidden = false;
+
+                        // Nettoyer
+                        document.body.removeChild(cameraContainer);
+
+                        // Analyser l'image
+                        await analyzeMedication(blob);
+                    }
+                };
+
+                return (
+                    <Camera 
+                        ref={cameraRef}
+                        type={type}
+                        style={{
+                            flex: 1,
+                            width: '100%',
+                            height: '100%'
+                        }}
+                    >
+                        <View style={{
+                            position: 'absolute',
+                            bottom: 20,
+                            flexDirection: 'row',
+                            justifyContent: 'space-around',
+                            width: '100%'
+                        }}>
+                            <TouchableOpacity
+                                onPress={takePicture}
+                                style={{
+                                    width: 70,
+                                    height: 70,
+                                    borderRadius: 35,
+                                    backgroundColor: '#fff',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <View style={{
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 30,
+                                    backgroundColor: '#0066ff'
+                                }} />
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setType(
+                                        type === Camera.Constants.Type.back
+                                            ? Camera.Constants.Type.front
+                                            : Camera.Constants.Type.back
+                                    );
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    right: 20,
+                                    bottom: 20
+                                }}
+                            >
+                                <Text style={{ fontSize: 20, color: 'white' }}>🔄</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Camera>
+                );
             };
 
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            camera.srcObject = stream;
-            camera.hidden = false;
-            camera.play();
-
-            // Ajout d'un bouton pour basculer entre les caméras
-            const switchCameraBtn = document.createElement('button');
-            switchCameraBtn.innerHTML = '🔄 Changer de caméra';
-            switchCameraBtn.className = 'switch-camera-btn';
-            camera.parentElement.appendChild(switchCameraBtn);
-
-            switchCameraBtn.onclick = async () => {
-                const currentFacingMode = constraints.video.facingMode.ideal;
-                constraints.video.facingMode.ideal = currentFacingMode === 'environment' ? 'user' : 'environment';
-                
-                // Arrêter l'ancien flux
-                stream.getTracks().forEach(track => track.stop());
-                
-                // Démarrer le nouveau flux
-                const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-                camera.srcObject = newStream;
-                camera.play();
-            };
-
-            camera.addEventListener('loadeddata', () => {
-                const canvas = document.createElement('canvas');
-                // Utiliser les dimensions réelles de la vidéo
-                canvas.width = camera.videoWidth;
-                canvas.height = camera.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(camera, 0, 0);
-                
-                canvas.toBlob(async (blob) => {
-                    camera.hidden = true;
-                    preview.src = URL.createObjectURL(blob);
-                    imagePreview.hidden = false;
-                    
-                    // Nettoyer
-                    stream.getTracks().forEach(track => track.stop());
-                    switchCameraBtn.remove();
-                    
-                    await analyzeMedication(blob);
-                }, 'image/jpeg', 0.95); // Qualité JPEG à 95%
-            });
+            // Rendre le composant Camera
+            ReactDOM.render(<CameraComponent />, cameraContainer);
 
         } catch (err) {
             console.error('Erreur lors de l\'accès à la caméra:', err);
-            let errorMessage = 'Impossible d\'accéder à la caméra. ';
-            
-            if (err.name === 'NotAllowedError') {
-                errorMessage += 'Veuillez autoriser l\'accès à la caméra.';
-            } else if (err.name === 'NotFoundError') {
-                errorMessage += 'Aucune caméra n\'a été trouvée sur votre appareil.';
-            } else if (err.name === 'NotReadableError') {
-                errorMessage += 'La caméra est peut-être déjà utilisée par une autre application.';
-            }
-            
-            alert(errorMessage);
+            alert('Impossible d\'accéder à la caméra');
         }
     }
 
@@ -153,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
 5. Dosage précis
 6. Classe thérapeutique
 7. Indications thérapeutiques principales détaillées
-8. Posologie recommandée (doses et fr��quence selon l'âge/poids)
+8. Posologie recommandée (doses et fréquence selon l'âge/poids)
 9. Mode d'administration spécifique
 10. Contre-indications majeures
 11. Effets secondaires fréquents
