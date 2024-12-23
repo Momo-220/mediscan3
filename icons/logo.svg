@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#0066ff"/>
+            <stop offset="100%" style="stop-color:#3399ff"/>
+        </linearGradient>
+        <filter id="shadow">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.3"/>
+        </filter>
+    </defs>
+    
+    <!-- Fond circulaire -->
+    <circle cx="256" cy="256" r="240" fill="url(#logoGradient)" filter="url(#shadow)"/>
+    
+    <!-- Croix pharmaceutique -->
+    <g fill="white" transform="translate(256 256) scale(0.8) translate(-256 -256)">
+        <!-- Pilule horizontale -->
+        <g transform="translate(0 -40)">
+            <rect x="136" y="236" width="240" height="80" rx="40" fill="white"/>
+            <rect x="136" y="236" width="120" height="80" rx="40" fill="#0066ff"/>
+        </g>
+        
+        <!-- Pilule verticale -->
+        <g transform="translate(0 40) rotate(45 256 256)">
+            <rect x="136" y="236" width="240" height="80" rx="40" fill="white"/>
+            <rect x="256" y="236" width="120" height="80" rx="40" fill="#0066ff"/>
+        </g>
+        
+        <!-- Croix médicale -->
+        <g transform="translate(0 40)">
+            <rect x="236" y="156" width="40" height="120" rx="20" fill="white"/>
+            <rect x="196" y="196" width="120" height="40" rx="20" fill="white"/>
+        </g>
+    </g>
+</svg> 
