@@ -20,14 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: {
                     facingMode: { ideal: 'environment' },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 }
             });
             
             camera.srcObject = stream;
             camera.hidden = false;
+            camera.style.position = 'relative';
+            camera.style.zIndex = '900';
             camera.play();
+
+            // Créer un conteneur pour la caméra
+            const cameraContainer = document.createElement('div');
+            cameraContainer.style.position = 'fixed';
+            cameraContainer.style.top = '0';
+            cameraContainer.style.left = '0';
+            cameraContainer.style.width = '100%';
+            cameraContainer.style.height = '100%';
+            cameraContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+            cameraContainer.style.display = 'flex';
+            cameraContainer.style.flexDirection = 'column';
+            cameraContainer.style.alignItems = 'center';
+            cameraContainer.style.justifyContent = 'center';
+            cameraContainer.style.zIndex = '800';
+            
+            // Ajouter la vidéo au conteneur
+            camera.parentElement.removeChild(camera);
+            cameraContainer.appendChild(camera);
+            document.body.appendChild(cameraContainer);
 
             // Créer le bouton de capture
             const captureContainer = document.createElement('div');
@@ -37,8 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
             captureContainer.style.right = '0';
             captureContainer.style.display = 'flex';
             captureContainer.style.justifyContent = 'center';
+            captureContainer.style.gap = '20px';
             captureContainer.style.zIndex = '1000';
             
+            // Bouton de capture
             const takePictureBtn = document.createElement('button');
             takePictureBtn.className = 'capture-button';
             takePictureBtn.innerHTML = '<i class="fas fa-camera"></i>';
@@ -50,7 +73,26 @@ document.addEventListener('DOMContentLoaded', () => {
             takePictureBtn.style.color = 'white';
             takePictureBtn.style.fontSize = '24px';
             
+            // Bouton de fermeture
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.style.position = 'fixed';
+            closeBtn.style.top = '20px';
+            closeBtn.style.right = '20px';
+            closeBtn.style.backgroundColor = 'transparent';
+            closeBtn.style.border = 'none';
+            closeBtn.style.color = 'white';
+            closeBtn.style.fontSize = '24px';
+            closeBtn.style.zIndex = '1000';
+            
+            closeBtn.onclick = () => {
+                stream.getTracks().forEach(track => track.stop());
+                document.body.removeChild(cameraContainer);
+                captureContainer.remove();
+            };
+            
             captureContainer.appendChild(takePictureBtn);
+            cameraContainer.appendChild(closeBtn);
             document.body.appendChild(captureContainer);
 
             // Fonction pour prendre la photo
@@ -61,13 +103,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvas.getContext('2d').drawImage(camera, 0, 0);
                 
                 canvas.toBlob(async (blob) => {
-                    camera.hidden = true;
+                    document.body.removeChild(cameraContainer);
+                    captureContainer.remove();
                     preview.src = URL.createObjectURL(blob);
                     imagePreview.hidden = false;
                     
                     // Nettoyer
                     stream.getTracks().forEach(track => track.stop());
-                    captureContainer.remove();
                     
                     await analyzeMedication(blob);
                 }, 'image/jpeg', 0.95);

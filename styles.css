@@ -1237,4 +1237,75 @@ body {
         transform: none;
     }
 }
+
+/* Styles pour la caméra */
+#camera {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    aspect-ratio: 16/9;
+    border-radius: 20px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Styles pour l'aperçu */
+.preview-container {
+    width: 100%;
+    max-width: 500px;
+    margin: 1rem auto;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+#preview {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Optimisation des images et icônes */
+.logo-img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+}
+
+.app-preview-img {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 15px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Ajustements pour mobile */
+@media screen and (max-width: 768px) {
+    #camera {
+        max-width: 100%;
+        border-radius: 15px;
+        margin: 1rem auto;
+    }
+
+    .preview-container {
+        max-width: 100%;
+        margin: 1rem auto;
+    }
+
+    .logo-img {
+        width: 80px;
+        height: 80px;
+    }
+
+    .capture-button {
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 1000 !important;
+    }
+}
   
