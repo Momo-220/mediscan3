@@ -17,18 +17,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fonction pour le bouton de capture photo
     captureBtn.addEventListener('click', async () => {
         try {
+            // Vérifier d'abord si la permission est déjà accordée
+            const permissionResult = await navigator.permissions.query({ name: 'camera' });
+            
+            if (permissionResult.state === 'denied') {
+                throw new Error('Permission de caméra refusée. Veuillez l\'activer dans les paramètres de votre navigateur.');
+            }
+
+            // Demander l'accès à la caméra avec des options spécifiques pour mobile
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: {
-                    facingMode: { ideal: 'environment' },
+                    facingMode: { exact: 'environment' }, // Force la caméra arrière
                     width: { ideal: 1280 },
                     height: { ideal: 1440 },
                     aspectRatio: { ideal: 0.75 }
                 }
+            }).catch(async (err) => {
+                // Si la caméra arrière n'est pas disponible, essayer la caméra par défaut
+                if (err.name === 'OverconstrainedError') {
+                    return await navigator.mediaDevices.getUserMedia({ 
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 1440 }
+                        }
+                    });
+                }
+                throw err;
             });
             
             camera.srcObject = stream;
             camera.hidden = false;
-            camera.play();
+            await camera.play();
 
             // Créer un conteneur pour la caméra
             const cameraContainer = document.createElement('div');
@@ -92,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             console.error('Erreur lors de l\'accès à la caméra:', err);
-            alert('Impossible d\'accéder à la caméra. Veuillez vérifier les permissions.');
+            alert('Impossible d\'accéder à la caméra. Veuillez vérifier les permissions dans les paramètres de votre appareil et rafraîchir la page.');
         }
     });
 
@@ -188,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Traitement et affichage des résultats
             displayResults(textResponse);
-            
+
             // Mise à jour du statut
             statusMessage.classList.remove('loading-dots');
             statusMessage.textContent = 'Scan terminé';
