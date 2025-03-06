@@ -25,11 +25,4 @@ sharp(logoSvg)
 sharp(logoSvg)
     .resize(32, 32)
     .png()
-    .toFile('icons/favicon.png');
-
-// Conversion de l'aperçu
-const previewSvg = fs.readFileSync('images/app-preview.svg');
-sharp(previewSvg)
-    .resize(1200, 800)
-    .png()
-    .toFile('images/app-preview.jpg'); 
+    .toFile('icons/favicon.png'); 
